@@ -12,11 +12,11 @@ public class CorsConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**") // 所有接口
-                        .allowedOriginPatterns("*") // 允许所有来源（含端口）
+                registry.addMapping("/**")
+                        .allowedOrigins("http://localhost:5173") // ✅ 推荐使用 allowedOrigins
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
-                        .allowCredentials(true); // 允许携带 Cookie/token 等身份信息
+                        .allowCredentials(true);
             }
         };
     }

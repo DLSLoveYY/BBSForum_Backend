@@ -6,9 +6,13 @@ import top.dlsloveyy.backendtest.config.JwtFilter;
 import top.dlsloveyy.backendtest.entity.Comment;
 import top.dlsloveyy.backendtest.entity.User;
 import top.dlsloveyy.backendtest.repository.CommentRepository;
+import top.dlsloveyy.backendtest.repository.PostRepository;
+import top.dlsloveyy.backendtest.entity.Post;
 
 import java.time.LocalDateTime;
 import java.util.*;
+
+
 
 @RestController
 @RequestMapping("/api/comment")
@@ -17,17 +21,26 @@ public class CommentController {
     @Autowired
     private CommentRepository commentRepository;
 
+    @Autowired
+    private PostRepository postRepository;
+
     // ✅ 添加评论（绑定当前登录用户）
     @PostMapping("/add")
     public String addComment(@RequestBody Comment comment) {
-        User currentUser = JwtFilter.currentUser.get();
-        if (currentUser == null) {
-            return "未登录，禁止评论";
+        comment.setCreateTime(LocalDateTime.now());
+        commentRepository.save(comment);
+
+        // ✅ 统计该 postId 的评论总数
+        Long count = commentRepository.countByPostId(comment.getPostId());
+
+        // ✅ 更新对应帖子中的 comments 字段
+        Optional<Post> optionalPost = postRepository.findById(comment.getPostId());
+        if (optionalPost.isPresent()) {
+            Post post = optionalPost.get();
+            post.setComments(count.intValue());
+            postRepository.save(post);
         }
 
-        comment.setCreateTime(LocalDateTime.now());
-        comment.setUser(currentUser);
-        commentRepository.save(comment);
         return "评论成功";
     }
 

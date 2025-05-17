@@ -7,6 +7,7 @@ import top.dlsloveyy.backendtest.config.JwtFilter;
 import top.dlsloveyy.backendtest.entity.Post;
 import top.dlsloveyy.backendtest.entity.User;
 import top.dlsloveyy.backendtest.repository.PostRepository;
+import top.dlsloveyy.backendtest.repository.CommentRepository;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -19,6 +20,8 @@ public class PostController {
 
     @Autowired
     private PostRepository postRepository;
+    @Autowired
+    private CommentRepository commentRepository;
 
     @PostMapping("/add")
     public Map<String, Object> addPost(@RequestBody Post post) {
@@ -29,10 +32,19 @@ public class PostController {
 
         post.setCreateTime(LocalDateTime.now());
         post.setUser(currentUser);
+        post.setAuthor(currentUser.getUsername());
+
+        // ✅ 初始化新字段
+        post.setViews(0);
+        post.setLikes(0);
+        post.setComments(0);
+        post.setFeatured(false);
+
         postRepository.save(post);
 
         return Map.of("code", 200, "message", "发帖成功");
     }
+
 
 
     // ✅ 查询所有帖子列表（不分页）
@@ -41,16 +53,24 @@ public class PostController {
         return postRepository.findAll(Sort.by("createTime").descending());
     }
 
-    // ✅ 分页查询帖子列表
     @GetMapping("/page")
     public Map<String, Object> getPostPage(@RequestParam(defaultValue = "1") int page,
                                            @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createTime").descending());
         Page<Post> postPage = postRepository.findAll(pageable);
 
+        List<Post> posts = postPage.getContent();
+
+        // ✅ 遍历每条帖子，设置评论数量
+        for (Post post : posts) {
+            Long commentCount = commentRepository.countByPostId(post.getId());
+            post.setComments(commentCount.intValue());
+        }
+
         Map<String, Object> result = new HashMap<>();
         result.put("total", postPage.getTotalElements());
-        result.put("posts", postPage.getContent());
+        result.put("posts", posts);
         return result;
     }
+
 }

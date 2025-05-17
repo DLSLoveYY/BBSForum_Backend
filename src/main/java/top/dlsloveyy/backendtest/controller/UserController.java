@@ -7,7 +7,6 @@ import top.dlsloveyy.backendtest.entity.User;
 import top.dlsloveyy.backendtest.repository.UserRepository;
 import top.dlsloveyy.backendtest.util.JwtUtil;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -16,6 +15,9 @@ public class UserController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private JwtUtil jwtUtil;  // ✅ 注入 JwtUtil Bean
 
     // ✅ 注册接口（统一返回结构）
     @PostMapping("/register")
@@ -43,7 +45,7 @@ public class UserController {
             return ResponseEntity.ok(Map.of("code", 401, "message", "用户名或密码错误"));
         }
 
-        String token = JwtUtil.generateToken(username);
+        String token = jwtUtil.generateToken(username);  // ✅ 使用注入对象
         return ResponseEntity.ok(Map.of(
                 "code", 200,
                 "message", "登录成功",
