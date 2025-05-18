@@ -8,6 +8,7 @@ import top.dlsloveyy.backendtest.entity.UnPost;
 import top.dlsloveyy.backendtest.entity.User;
 import top.dlsloveyy.backendtest.repository.UnPostRepository;
 import top.dlsloveyy.backendtest.repository.UserRepository;
+import top.dlsloveyy.backendtest.service.AuditService;
 import top.dlsloveyy.backendtest.util.JwtUtil;
 
 import java.time.LocalDateTime;
@@ -26,6 +27,9 @@ public class UnPostController {
     @Autowired
     private JwtUtil jwtUtil; // ✅ 注入 JwtUtil Bean
 
+    @Autowired
+    private AuditService auditService;
+
     @PostMapping("/submit")
     public ResponseEntity<?> submitPost(@RequestBody Map<String, String> payload,
                                         HttpServletRequest request) {
@@ -36,14 +40,13 @@ public class UnPostController {
             return ResponseEntity.ok(Map.of("code", 400, "message", "标题或内容不能为空"));
         }
 
-        // 从请求头提取 token
         String token = request.getHeader("Authorization");
         if (token == null || !token.startsWith("Bearer ")) {
             return ResponseEntity.status(401).body(Map.of("code", 401, "message", "未登录或Token缺失"));
         }
 
         token = token.substring(7);
-        String username = jwtUtil.getUsernameFromToken(token); // ✅ 替换静态方法调用
+        String username = jwtUtil.getUsernameFromToken(token);
         if (username == null) {
             return ResponseEntity.status(401).body(Map.of("code", 401, "message", "Token无效"));
         }
@@ -62,6 +65,11 @@ public class UnPostController {
         post.setAuthorId(user.getId());
 
         unPostRepository.save(post);
-        return ResponseEntity.ok(Map.of("code", 200, "message", "发帖成功，待审核中"));
+
+        // ✅ 调用自动审核逻辑
+        auditService.autoAuditAll();
+
+        return ResponseEntity.ok(Map.of("code", 200, "message", "发帖成功，正在审核"));
     }
+
 }

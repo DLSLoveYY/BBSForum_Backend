@@ -17,24 +17,9 @@ public class UserController {
     private UserRepository userRepository;
 
     @Autowired
-    private JwtUtil jwtUtil;  // ✅ 注入 JwtUtil Bean
+    private JwtUtil jwtUtil;
 
-    // ✅ 注册接口（统一返回结构）
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody User user) {
-        if (user.getUsername() == null || user.getPassword() == null) {
-            return ResponseEntity.ok(Map.of("code", 400, "message", "用户名和密码不能为空"));
-        }
-
-        if (userRepository.findByUsername(user.getUsername()) != null) {
-            return ResponseEntity.ok(Map.of("code", 409, "message", "用户名已存在"));
-        }
-
-        userRepository.save(user);
-        return ResponseEntity.ok(Map.of("code", 200, "message", "注册成功"));
-    }
-
-    // ✅ 登录接口（统一返回结构）
+    // ✅ 登录接口（保持不变）
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody User loginUser) {
         String username = loginUser.getUsername();
@@ -45,11 +30,69 @@ public class UserController {
             return ResponseEntity.ok(Map.of("code", 401, "message", "用户名或密码错误"));
         }
 
-        String token = jwtUtil.generateToken(username);  // ✅ 使用注入对象
+        String token = jwtUtil.generateToken(username);
         return ResponseEntity.ok(Map.of(
                 "code", 200,
                 "message", "登录成功",
                 "token", token
         ));
     }
+
+    // ✅ 注册接口（改为 @RequestBody）
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody User user) {
+        if (userRepository.existsByUsername(user.getUsername())) {
+            return ResponseEntity.badRequest().body("用户名已存在");
+        }
+
+        userRepository.save(user);
+        return ResponseEntity.ok("注册成功");
+    }
+
+    @GetMapping("/info")
+    public ResponseEntity<?> getUserInfo(@RequestHeader("Authorization") String token) {
+        String username = jwtUtil.extractUsername(token);
+        User user = userRepository.findByUsername(username);
+        if (user == null) {
+            return ResponseEntity.status(404).body("用户不存在");
+        }
+
+        // 使用 put 构建，允许值为 null
+        Map<String, Object> result = new java.util.HashMap<>();
+        result.put("username", user.getUsername());
+        result.put("email", user.getEmail());
+        result.put("avatar", user.getAvatar());
+
+        return ResponseEntity.ok(result);
+    }
+
+
+    @PutMapping("/update")
+    public ResponseEntity<?> updateUserInfo(@RequestHeader("Authorization") String token,
+                                            @RequestBody Map<String, String> updateData) {
+        String username = jwtUtil.extractUsername(token);
+        User user = userRepository.findByUsername(username);
+        if (user == null) {
+            return ResponseEntity.status(404).body("用户不存在");
+        }
+        String newUsername = updateData.get("username");
+        String email = updateData.get("email");
+        String password = updateData.get("password");
+        String avatar = updateData.get("avatar");
+
+        if (email != null) user.setEmail(email);
+        if (password != null && !password.isEmpty()) user.setPassword(password);
+        if (avatar != null) user.setAvatar(avatar);
+        // ✅ 如果用户名有修改，则检查是否已存在（排除自己）
+        if (newUsername != null && !newUsername.equals(user.getUsername())) {
+            if (userRepository.existsByUsername(newUsername)) {
+                return ResponseEntity.badRequest().body("该用户名已被占用");
+            }
+            user.setUsername(newUsername);
+        }
+        userRepository.save(user);
+        return ResponseEntity.ok("更新成功");
+    }
+
+
 }

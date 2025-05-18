@@ -25,6 +25,9 @@ public class JwtUtil {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
+    /**
+     * 生成 JWT token
+     */
     public String generateToken(String username) {
         return Jwts.builder()
                 .setSubject(username)
@@ -33,6 +36,9 @@ public class JwtUtil {
                 .compact();
     }
 
+    /**
+     * 从 token 中获取用户名（旧接口名，仍可用）
+     */
     public String getUsernameFromToken(String token) {
         try {
             return Jwts.parserBuilder()
@@ -44,5 +50,16 @@ public class JwtUtil {
         } catch (JwtException e) {
             return null;
         }
+    }
+
+    /**
+     * 兼容 controller 中 extractUsername(token) 调用
+     * 支持自动去除 Bearer 前缀
+     */
+    public String extractUsername(String token) {
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        return getUsernameFromToken(token);
     }
 }

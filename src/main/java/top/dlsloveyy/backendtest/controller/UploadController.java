@@ -45,6 +45,26 @@ public class UploadController {
         }
     }
 
+    @PostMapping("/upload/avatar")
+    public String uploadAvatar(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return "文件为空";
+        }
+        String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
+        String uploadDir = System.getProperty("user.dir") + "/uploads/avatars/";
+
+        File dir = new File(uploadDir);
+        if (!dir.exists()) dir.mkdirs();
+
+        File dest = new File(uploadDir + fileName);
+        try {
+            file.transferTo(dest);
+            return "/uploads/avatars/" + fileName;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "上传失败";
+        }
+    }
 
 
 }
