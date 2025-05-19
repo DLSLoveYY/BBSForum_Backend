@@ -57,9 +57,11 @@ public class JwtUtil {
      * 支持自动去除 Bearer 前缀
      */
     public String extractUsername(String token) {
-        if (token.startsWith("Bearer ")) {
+        if (token != null && token.toLowerCase().startsWith("bearer ")) {
             token = token.substring(7);
         }
         return getUsernameFromToken(token);
     }
+
+
 }
