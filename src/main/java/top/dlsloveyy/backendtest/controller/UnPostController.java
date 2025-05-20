@@ -13,6 +13,7 @@ import top.dlsloveyy.backendtest.util.JwtUtil;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/post")
@@ -51,10 +52,12 @@ public class UnPostController {
             return ResponseEntity.status(401).body(Map.of("code", 401, "message", "Token无效"));
         }
 
-        User user = userRepository.findByUsername(username);
-        if (user == null) {
+        Optional<User> optionalUser = userRepository.findByUsername(username);
+        if (optionalUser.isEmpty()) {
             return ResponseEntity.status(401).body(Map.of("code", 401, "message", "用户不存在"));
         }
+
+        User user = optionalUser.get();
 
         UnPost post = new UnPost();
         post.setTitle(title);

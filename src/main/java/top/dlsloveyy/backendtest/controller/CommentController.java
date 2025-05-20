@@ -38,11 +38,12 @@ public class CommentController {
         }
 
         String username = jwtUtil.extractUsername(authHeader);
-        User user = userRepository.findByUsername(username);
-        if (user == null) {
+        Optional<User> optionalUser = userRepository.findByUsername(username);
+        if (optionalUser.isEmpty()) {
             return ResponseEntity.status(401).body(Map.of("code", 401, "message", "用户不存在"));
         }
 
+        User user = optionalUser.get();
         comment.setUser(user);
         comment.setCreateTime(LocalDateTime.now());
         commentRepository.save(comment);
@@ -149,6 +150,7 @@ public class CommentController {
 
         return map;
     }
+
     /**
      * 简化引用内容：图片替换为【图片】，截断太长内容
      */

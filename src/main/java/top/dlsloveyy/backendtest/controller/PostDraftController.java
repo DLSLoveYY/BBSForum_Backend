@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/draft")
@@ -50,10 +51,12 @@ public class PostDraftController {
             return ResponseEntity.status(401).body(Map.of("code", 3, "message", "无效的 token"));
         }
 
-        User user = userRepository.findByUsername(username);
-        if (user == null) {
+        Optional<User> optionalUser = userRepository.findByUsername(username);
+        if (optionalUser.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("code", 4, "message", "用户不存在"));
         }
+
+        User user = optionalUser.get();
 
         // ✅ 删除该用户的旧草稿
         draftPostRepository.deleteAllByAuthorId(user.getId());
@@ -84,10 +87,12 @@ public class PostDraftController {
             return ResponseEntity.status(401).body(Map.of("code", 2, "message", "无效 token"));
         }
 
-        User user = userRepository.findByUsername(username);
-        if (user == null) {
+        Optional<User> optionalUser = userRepository.findByUsername(username);
+        if (optionalUser.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("code", 3, "message", "用户不存在"));
         }
+
+        User user = optionalUser.get();
 
         // 获取该用户的最近草稿（按时间倒序）
         List<DraftPost> drafts = draftPostRepository.findByAuthorIdOrderByCreateTimeDesc(user.getId());

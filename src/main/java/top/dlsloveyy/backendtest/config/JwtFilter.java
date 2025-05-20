@@ -11,6 +11,7 @@ import top.dlsloveyy.backendtest.entity.User;
 import top.dlsloveyy.backendtest.util.JwtUtil;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @Component
 public class JwtFilter implements Filter {
@@ -41,10 +42,8 @@ public class JwtFilter implements Filter {
             String token = authHeader.substring(7);
             String username = jwtUtil.getUsernameFromToken(token);
             if (username != null) {
-                User user = userRepository.findByUsername(username);
-                if (user != null) {
-                    currentUser.set(user);
-                }
+                Optional<User> optionalUser = userRepository.findByUsername(username);
+                optionalUser.ifPresent(currentUser::set); // ✅ 安全设置当前用户
             }
         }
 

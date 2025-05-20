@@ -28,6 +28,14 @@ public class User {
     @Column(name = "avatar")
     private String avatar; // 头像图片URL
 
+    @Column(length = 255)
+    private String signature; // 个人签名
+
+    @Column(length = 10)
+    private String gender; // 性别（可为 "男", "女", "其他"）
+
+    private Integer age; // 年龄
+
     public String getAvatar() {
         return avatar;
     }

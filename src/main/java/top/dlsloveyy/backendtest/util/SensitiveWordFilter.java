@@ -22,6 +22,7 @@ public class SensitiveWordFilter {
     }
 
     private static void addWord(String word) {
+        if (word == null || word.isEmpty()) return;  // ✅ 防止空词条误判
         Map<Character, Node> current = root;
         for (char c : word.toCharArray()) {
             Node next = current.get(c);
@@ -33,6 +34,7 @@ public class SensitiveWordFilter {
         }
         current.put('\0', new Node()); // 结束符
     }
+
 
     public static boolean contains(String text) {
         if (text == null) return false;

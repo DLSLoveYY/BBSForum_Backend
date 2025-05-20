@@ -6,13 +6,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import top.dlsloveyy.backendtest.entity.Post;
 import top.dlsloveyy.backendtest.entity.User;
+import top.dlsloveyy.backendtest.repository.PostRepository;
 import top.dlsloveyy.backendtest.repository.UserRepository;
 import top.dlsloveyy.backendtest.util.JwtUtil;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.util.Map;
@@ -34,6 +34,8 @@ public class AdminController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PostRepository postRepository;
     /**
      * 最高管理员登录接口
      */
@@ -85,7 +87,7 @@ public class AdminController {
         }
 
         String targetUsername = payload.get("username");
-        Optional<User> optionalUser = Optional.ofNullable(userRepository.findByUsername(targetUsername));
+        Optional<User> optionalUser = userRepository.findByUsername(targetUsername);
         if (optionalUser.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("code", 404, "message", "用户不存在"));
         }
@@ -107,11 +109,12 @@ public class AdminController {
         }
 
         String username = payload.get("username");
-        User user = userRepository.findByUsername(username);
-        if (user == null) {
+        Optional<User> optionalUser = userRepository.findByUsername(username);
+        if (optionalUser.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("code", 404, "message", "用户不存在"));
         }
 
+        User user = optionalUser.get();
         user.setIsAdmin(true);
         userRepository.save(user);
         return ResponseEntity.ok(Map.of("code", 200, "message", "已设为管理员"));
@@ -127,11 +130,12 @@ public class AdminController {
         }
 
         String username = payload.get("username");
-        User user = userRepository.findByUsername(username);
-        if (user == null) {
+        Optional<User> optionalUser = userRepository.findByUsername(username);
+        if (optionalUser.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("code", 404, "message", "用户不存在"));
         }
 
+        User user = optionalUser.get();
         user.setEnabled(false);
         userRepository.save(user);
         return ResponseEntity.ok(Map.of("code", 200, "message", "已封禁该账号"));
@@ -147,15 +151,17 @@ public class AdminController {
         }
 
         String username = payload.get("username");
-        User user = userRepository.findByUsername(username);
-        if (user == null) {
+        Optional<User> optionalUser = userRepository.findByUsername(username);
+        if (optionalUser.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("code", 404, "message", "用户不存在"));
         }
 
+        User user = optionalUser.get();
         user.setEnabled(true);
         userRepository.save(user);
         return ResponseEntity.ok(Map.of("code", 200, "message", "已解除封禁"));
     }
+
     @PostMapping("/unsetAdmin")
     public ResponseEntity<?> unsetAdmin(@RequestBody Map<String, String> payload,
                                         @RequestHeader("Authorization") String authHeader) {
@@ -166,11 +172,12 @@ public class AdminController {
         }
 
         String username = payload.get("username");
-        User user = userRepository.findByUsername(username);
-        if (user == null) {
+        Optional<User> optionalUser = userRepository.findByUsername(username);
+        if (optionalUser.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("code", 404, "message", "用户不存在"));
         }
 
+        User user = optionalUser.get();
         user.setIsAdmin(false);
         userRepository.save(user);
         return ResponseEntity.ok(Map.of("code", 200, "message", "已取消管理员权限"));
@@ -193,7 +200,41 @@ public class AdminController {
                 "total", result.getTotalElements()
         ));
     }
+    /**
+     * 发布公告（仅最高管理员）
+     */
+    @PostMapping("/announce")
+    public ResponseEntity<?> publishAnnouncement(@RequestBody Map<String, String> payload,
+                                                 @RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.substring(7);
+        String username = jwtUtil.getUsernameFromToken(token);
+        if (!adminUsername.equals(username)) {
+            return ResponseEntity.status(403).body(Map.of("code", 403, "message", "无权限"));
+        }
 
+        String title = payload.get("title");
+        String content = payload.get("content");
+
+        if (title == null || title.trim().isEmpty() || content == null || content.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("code", 400, "message", "标题和内容不能为空"));
+        }
+
+        Post announcement = new Post();
+        announcement.setTitle(title);
+        announcement.setContent(content);
+        announcement.setCreateTime(java.time.LocalDateTime.now());
+        announcement.setViews(0);
+        announcement.setLikes(0);
+        announcement.setComments(0);
+        announcement.setFeatured(false);
+        announcement.setIsNotice(true);
+        announcement.setAuthor("管理员"); // 你也可以设为 adminUsername
+
+        // 不关联具体用户
+        announcement.setUser(null);
+
+        postRepository.save(announcement);
+        return ResponseEntity.ok(Map.of("code", 200, "message", "公告发布成功"));
+    }
 
 }
-

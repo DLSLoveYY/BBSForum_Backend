@@ -22,6 +22,7 @@ public class Post {
     @ManyToOne
     @JoinColumn(name = "user_id")  // 外键列名
     private User user;  // 关联的作者对象
+
     private String author;
 
     @Column(nullable = false)
@@ -35,4 +36,8 @@ public class Post {
 
     @Column(nullable = false)
     private Boolean featured = false;
+
+    // ✅ 新增：是否为公告帖
+    @Column(nullable = false)
+    private Boolean isNotice = false;
 }
